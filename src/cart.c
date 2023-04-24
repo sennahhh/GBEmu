@@ -37,24 +37,38 @@ int read_cart_header(char *rom_path) {
 int parse_cart_header() {
     int i = 0;
     int j = 0;
-    // entry point
-    for(i = i; i < 4; i++) {
-        parsed_cart_header.entry_point[i] = full_cart_header[i];
+    uint8_t new_lic_code[2];
+    uint8_t cart_type_code;
+
+    for(j = 0; j < 4; j++) {
+        parsed_cart_header.entry_point[j] = full_cart_header[i];
+        i++;
     }
 
-    // nintendo logo
-    for(j = 0; i < 48; i++) {
+    for(j = 0; j < 48; j++) {
         parsed_cart_header.nintendo_logo[j] = full_cart_header[i];
-        j++;
+        i++;
     }
 
-    // title
-    for(j = 0; i < 16; i++) {
+    for(j = 0; j < 16; j++) {
         parsed_cart_header.title[j] = full_cart_header[i];
-        j++;
+        i++;
     }
 
-    printf("%c\n", parsed_cart_header.title[0]);
+    for(j = 0; j < 2; j++) {
+        new_lic_code[j] = full_cart_header[i];
+        i++;
+    }
     
+    parsed_cart_header.SGB_flag = full_cart_header[i];
+    i++;
+
+    cart_type_code = full_cart_header[i];
+    i++;
+
+
+
+    
+
     return 0;
 }
