@@ -1,11 +1,13 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 struct parsed_cart_header {
     uint8_t entry_point[4]; 
     uint8_t nintendo_logo[48];  
     char title[16];          
-    char *publisher;
+    char *license_publisher;
     uint8_t SGB_flag;
     char *cart_type;      
     int rom_size;       
@@ -35,83 +37,7 @@ int read_cart_header(char *rom_path) {
     return 0;
 }
 
-const char* parse_license(uint8_t new_lic, uint8_t old_lic) {
-
-if(old_lic == 0x33) {
-    for(int i = 0; i < 61; i++) {
-        //int num = (int)strtol(memcpy(), " ", 16);
-    }
-    
-}
-
-return "hej";
-}
-
-int parse_cart_header() {
-    int i = 0;
-    int j = 0;
-    uint8_t new_lic_code[2];
-    uint8_t old_lic_code;
-    uint8_t cart_type_code;
-    uint8_t rom_size_code;
-    uint8_t ram_size_code;
-
-    for(j = 0; j < 4; j++) {
-        cart_header.entry_point[j] = full_cart_header[i];
-        i++;
-    }
-
-    for(j = 0; j < 48; j++) {
-        cart_header.nintendo_logo[j] = full_cart_header[i];
-        i++;
-    }
-
-    for(j = 0; j < 16; j++) {
-        cart_header.title[j] = full_cart_header[i];
-        i++;
-    }
-
-    for(j = 0; j < 2; j++) {
-        new_lic_code[j] = full_cart_header[i];
-        i++;
-    }
-    
-    cart_header.SGB_flag = full_cart_header[i];
-    i++;
-
-    cart_type_code = full_cart_header[i];
-    i++;
-
-    rom_size_code = full_cart_header[i];
-    i++;
-
-    ram_size_code = full_cart_header[i];
-    i++;
-    
-    cart_header.dest_code = full_cart_header[i];
-    i++;
-
-    old_lic_code = full_cart_header[i];
-    i++;
-
-    cart_header.version_of_game = full_cart_header[i];
-    i++;
-
-    cart_header.header_checksum = full_cart_header[i];
-    i++;
-
-    for(j = 0; j < 2; j++) {
-        cart_header.global_checksum[j] = full_cart_header[i];
-        i++;
-    }
-
-    printf("%s", parse_license(old_lic_code, old_lic_code));
-
-    return 0;
-}
-
-
-char *old_license_codes[] = {
+char *old_licenses[] = {
     "00	None",
     "01	Nintendo",
     "08	Capcom",
@@ -261,7 +187,7 @@ char *old_license_codes[] = {
     "FF	LJN"
 };
 
-char *new_license_codes[] = {
+char *new_licenses[] = {
     "00	None",
     "01	Nintendo R&D1",
     "08	Capcom",
@@ -355,3 +281,111 @@ char *cartridge_types[] = {
     "FE	HuC3",
     "FF	HuC1+RAM+BATTERY"
 };
+
+int parse_license(uint8_t new_lic, uint8_t old_lic) {
+
+if(old_lic == 0x33) {
+    for(int i = 0; i < 61; i++) {
+        char two_first[2];
+        strncpy(two_first, old_licenses[i], 2);
+        int hex = strtol(two_first, NULL, 16);
+        if(hex == new_lic) {
+            size_t len = strlen(old_licenses[i]);
+            char tmp_str[len];
+            strncpy(tmp_str, old_licenses[i] + 3, len - 3);
+            cart_header.license_publisher = tmp_str;
+            break;
+        }
+    } 
+} else {
+    for(int i = 0; i < 147; i++) {
+        char two_first[2];
+        strncpy(two_first, old_licenses[i], 2);
+        int hex = strtol(two_first, NULL, 16);
+        if(hex == new_lic) {
+            size_t len = strlen(old_licenses[i]);
+            char tmp_str[len];
+            strncpy(tmp_str, old_licenses[i] + 3, len - 3);
+            cart_header.license_publisher = tmp_str;
+            break;
+        }
+    }
+}
+
+return 0;
+}
+
+int parse_cart_type(uint8_t code) {
+    for(int i = 0; i < 28; i++) {
+        char two_first[2];
+        strncpy(two_first, cartridge_types[i], 2);
+        int hex = strtol(two_first, NULL, 16);
+        if(hex == code) {
+            size_t len = strlen(cartridge_types[i]);
+            char tmp_str[len];
+            strncpy(tmp_str, cartridge_types[i] + 3, len - 3);
+            cart_header.cart_type = tmp_str;
+            break;
+        }
+    }
+    return 0;
+}
+
+int parse_cart_header() {
+    int i = 0;
+    int j = 0;
+    uint8_t new_lic_code[2];
+    uint8_t old_lic_code;
+    uint8_t cart_type_code;
+    uint8_t rom_size_code;
+    uint8_t ram_size_code;
+
+    for(j = 0; j < 4; j++, i++) {
+        cart_header.entry_point[j] = full_cart_header[i];
+    }
+
+    for(j = 0; j < 48; j++, i++) {
+        cart_header.nintendo_logo[j] = full_cart_header[i];
+    }
+
+    for(j = 0; j < 16; j++, i++) {
+        cart_header.title[j] = full_cart_header[i];
+    }
+
+    for(j = 0; j < 2; j++, i++) {
+        new_lic_code[j] = full_cart_header[i];
+    }
+    
+    cart_header.SGB_flag = full_cart_header[i];
+    i++;
+
+    cart_type_code = full_cart_header[i];
+    i++;
+
+    rom_size_code = full_cart_header[i];
+    i++;
+
+    ram_size_code = full_cart_header[i];
+    i++;
+    
+    cart_header.dest_code = full_cart_header[i];
+    i++;
+
+    old_lic_code = full_cart_header[i];
+    i++;
+
+    cart_header.version_of_game = full_cart_header[i];
+    i++;
+
+    cart_header.header_checksum = full_cart_header[i];
+    i++;
+
+    for(j = 0; j < 2; j++, i++) {
+        cart_header.global_checksum[j] = full_cart_header[i];
+    }
+
+    parse_license(new_lic_code[0], old_lic_code);
+    parse_cart_type(cart_type_code);
+
+    return 0;
+}
