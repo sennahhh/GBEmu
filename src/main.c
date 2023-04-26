@@ -7,8 +7,8 @@
 int main(int argc, char **argv) {
     
     if(argc >= 2) {
-        printf("%d first\n", read_cart_header(argv[1]));
-        printf("%d second\n", parse_cart_header());
+        printf("%d first\n", get_cart(argv[1]));
+        printf("%s", cartridge.title);
     }
     
     return 0;

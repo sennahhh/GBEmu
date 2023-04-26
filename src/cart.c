@@ -3,30 +3,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct parsed_cart_header {
+struct parsed_cart {
+    char *rom_path;
     uint8_t entry_point[4]; 
     uint8_t nintendo_logo[48];  
     char title[16];          
     char *license_publisher;
     uint8_t SGB_flag;
     char *cart_type;      
-    int rom_size;       
-    int ram_size;
+    long rom_size;       
+    long ram_size;
     uint8_t dest_code; 
     uint8_t version_of_game;
     uint8_t header_checksum;
     uint8_t global_checksum[2];
+    uint8_t full_rom[];
 };
 
-struct parsed_cart_header cart_header;
+struct parsed_cart cartridge;
 unsigned char full_cart_header[80];
 unsigned char *full_rom;
 
-int read_cart_header(char *rom_path) {
+int read_cart_header() {
 
     FILE *fp;
 
-    fp = fopen(rom_path, "rb");
+    fp = fopen(cartridge.rom_path, "rb");
     if(fp == NULL) {
         return 1;
     }
@@ -293,7 +295,7 @@ if(old_lic == 0x33) {
             size_t len = strlen(old_licenses[i]);
             char tmp_str[len];
             strncpy(tmp_str, old_licenses[i] + 3, len - 3);
-            cart_header.license_publisher = tmp_str;
+            cartridge.license_publisher = tmp_str;
             break;
         }
     } 
@@ -306,7 +308,7 @@ if(old_lic == 0x33) {
             size_t len = strlen(old_licenses[i]);
             char tmp_str[len];
             strncpy(tmp_str, old_licenses[i] + 3, len - 3);
-            cart_header.license_publisher = tmp_str;
+            cartridge.license_publisher = tmp_str;
             break;
         }
     }
@@ -324,10 +326,38 @@ int parse_cart_type(uint8_t code) {
             size_t len = strlen(cartridge_types[i]);
             char tmp_str[len];
             strncpy(tmp_str, cartridge_types[i] + 3, len - 3);
-            cart_header.cart_type = tmp_str;
+            cartridge.cart_type = tmp_str;
             break;
         }
     }
+    return 0;
+}
+
+int parse_rom_size(int rom_size_code) {
+    long rom_size = 32 * 1024;
+    for(int i = 0; i < rom_size_code; i++) {
+        rom_size *= 2;
+    }
+    
+    cartridge.rom_size = rom_size;
+
+    return 0;
+} 
+
+int parse_ram_size(int ram_size_code) {
+    long ram_size;
+    if(ram_size_code == 1 || ram_size_code == 0) {
+        ram_size = 0;
+    } else if (ram_size_code == 5) {
+        ram_size = 64 * 1024;
+    } else {
+        ram_size = 8 * 1024;
+        for(int i = 0; i < (ram_size_code - 2); i++) {
+            ram_size *= 2; 
+        }
+    }
+
+    cartridge.ram_size = ram_size;
     return 0;
 }
 
@@ -341,22 +371,22 @@ int parse_cart_header() {
     uint8_t ram_size_code;
 
     for(j = 0; j < 4; j++, i++) {
-        cart_header.entry_point[j] = full_cart_header[i];
+        cartridge.entry_point[j] = full_cart_header[i];
     }
 
     for(j = 0; j < 48; j++, i++) {
-        cart_header.nintendo_logo[j] = full_cart_header[i];
+        cartridge.nintendo_logo[j] = full_cart_header[i];
     }
 
     for(j = 0; j < 16; j++, i++) {
-        cart_header.title[j] = full_cart_header[i];
+        cartridge.title[j] = full_cart_header[i];
     }
 
     for(j = 0; j < 2; j++, i++) {
         new_lic_code[j] = full_cart_header[i];
     }
     
-    cart_header.SGB_flag = full_cart_header[i];
+    cartridge.SGB_flag = full_cart_header[i];
     i++;
 
     cart_type_code = full_cart_header[i];
@@ -368,24 +398,49 @@ int parse_cart_header() {
     ram_size_code = full_cart_header[i];
     i++;
     
-    cart_header.dest_code = full_cart_header[i];
+    cartridge.dest_code = full_cart_header[i];
     i++;
 
     old_lic_code = full_cart_header[i];
     i++;
 
-    cart_header.version_of_game = full_cart_header[i];
+    cartridge.version_of_game = full_cart_header[i];
     i++;
 
-    cart_header.header_checksum = full_cart_header[i];
+    cartridge.header_checksum = full_cart_header[i];
     i++;
 
     for(j = 0; j < 2; j++, i++) {
-        cart_header.global_checksum[j] = full_cart_header[i];
+        cartridge.global_checksum[j] = full_cart_header[i];
     }
 
     parse_license(new_lic_code[0], old_lic_code);
     parse_cart_type(cart_type_code);
+    parse_rom_size(rom_size_code);
+    parse_ram_size(ram_size_code);
+
+    return 0;
+}
+
+int load_full_rom() {
+    FILE *fp;
+
+    fp = fopen(cartridge.rom_path, "rb");
+    if(fp == NULL) {
+        return 1;
+    }
+
+    fread(full_rom, 1, cartridge.rom_size, fp);
+
+    return 0;
+}
+
+int get_cart(char* rom_path) {
+    cartridge.rom_path = rom_path;
+    read_cart_header();
+    parse_cart_header();
+    load_full_rom();
+
 
     return 0;
 }
