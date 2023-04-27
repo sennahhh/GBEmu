@@ -2,7 +2,7 @@
 #define CART_H
 #include <stdint.h>
 
-int get_cart(char *rom_path);
+struct parsed_cart get_cart(char *rom_path);
 
 struct parsed_cart {
     char *rom_path;
@@ -20,7 +20,5 @@ struct parsed_cart {
     uint8_t global_checksum[2];
     uint8_t full_rom[];
 };
-
-struct parsed_cart cartridge;
 
 #endif
