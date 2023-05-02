@@ -463,6 +463,6 @@ int get_cart(struct parsed_cart *cartridge, char* rom_path) {
     printf("RAM SIZE    : %ld\n", cartridge->ram_size);
     printf("CHECKSUM    : %s\n", cartridge->header_checksum_check);
 
-    return cartridge;
+    return 0;
 
 }
