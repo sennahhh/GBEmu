@@ -2,7 +2,7 @@
 #define CART_H
 #include <stdint.h>
 
-struct parsed_cart get_cart(char *rom_path);
+struct parsed_cart *get_cart(struct parsed_cart *, char *);
 
 struct parsed_cart {
     char *rom_path;
@@ -17,6 +17,7 @@ struct parsed_cart {
     uint8_t dest_code; 
     uint8_t version_of_game;
     uint8_t header_checksum;
+    char *header_checksum_check;
     uint8_t global_checksum[2];
     uint8_t full_rom[];
 };
