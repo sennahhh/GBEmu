@@ -8,9 +8,9 @@ struct parsed_cart {
     uint8_t entry_point[4]; 
     uint8_t nintendo_logo[48];  
     char title[16];          
-    char *license_publisher;
+    char license_publisher[1024];
     uint8_t SGB_flag;
-    char *cart_type;      
+    char cart_type[1024];      
     long rom_size;       
     long ram_size;
     uint8_t dest_code; 
@@ -463,6 +463,6 @@ int get_cart(struct parsed_cart *cartridge, char* rom_path) {
     printf("RAM SIZE    : %ld\n", cartridge->ram_size);
     printf("CHECKSUM    : %s\n", cartridge->header_checksum_check);
 
+    return cartridge;
 
-    return 0;
 }
