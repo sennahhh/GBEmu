@@ -7,8 +7,9 @@
 int main(int argc, char **argv) {
     
     if(argc >= 2) {
-        printf("%d first\n", get_cart(argv[1]));
-        printf("%s", cartridge.title);
+        struct parsed_cart cartridge;
+        get_cart(&cartridge, argv[1]);
+        printf("%s\n", cartridge.title);
     }
     
     return 0;

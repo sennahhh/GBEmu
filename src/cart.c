@@ -16,28 +16,10 @@ struct parsed_cart {
     uint8_t dest_code; 
     uint8_t version_of_game;
     uint8_t header_checksum;
+    char *header_checksum_check;
     uint8_t global_checksum[2];
-    uint8_t full_rom[];
+    uint8_t *full_rom;
 };
-
-struct parsed_cart cartridge;
-unsigned char full_cart_header[80];
-unsigned char *full_rom;
-
-int read_cart_header() {
-
-    FILE *fp;
-
-    fp = fopen(cartridge.rom_path, "rb");
-    if(fp == NULL) {
-        return 1;
-    }
-
-    fseek(fp, 256, 1);
-    fread(full_cart_header, 1, 80, fp);
-
-    return 0;
-}
 
 char *old_licenses[] = {
     "00	None",
@@ -284,67 +266,79 @@ char *cartridge_types[] = {
     "FF	HuC1+RAM+BATTERY"
 };
 
-int parse_license(uint8_t new_lic, uint8_t old_lic) {
+unsigned char *read_cart_header(struct parsed_cart *cartridge) {
+    static unsigned char full_cart_header[80];
+    FILE *fp;
 
-if(old_lic == 0x33) {
-    for(int i = 0; i < 61; i++) {
-        char two_first[2];
-        strncpy(two_first, old_licenses[i], 2);
-        int hex = strtol(two_first, NULL, 16);
-        if(hex == new_lic) {
-            size_t len = strlen(old_licenses[i]);
-            char tmp_str[len];
-            strncpy(tmp_str, old_licenses[i] + 3, len - 3);
-            cartridge.license_publisher = tmp_str;
-            break;
-        }
-    } 
-} else {
-    for(int i = 0; i < 147; i++) {
-        char two_first[2];
-        strncpy(two_first, old_licenses[i], 2);
-        int hex = strtol(two_first, NULL, 16);
-        if(hex == new_lic) {
-            size_t len = strlen(old_licenses[i]);
-            char tmp_str[len];
-            strncpy(tmp_str, old_licenses[i] + 3, len - 3);
-            cartridge.license_publisher = tmp_str;
-            break;
+    fp = fopen(cartridge->rom_path, "rb");
+    if(fp == NULL) {
+        printf("ERROR READING CART");
+    }
+
+    fseek(fp, 256, 1);
+    fread(full_cart_header, 1, 80, fp);
+
+    return full_cart_header;
+}
+
+int parse_license(struct parsed_cart *cartridge, uint8_t new_lic, uint8_t old_lic) {
+
+    if(old_lic == 0x33) {
+        for(int i = 0; i < 61; i++) {
+            char two_first[2];
+            strncpy(two_first, new_licenses[i], 2);
+            int hex = strtol(two_first, NULL, 16);
+            if(hex == new_lic) {
+                size_t len = strlen(new_licenses[i]);
+                cartridge->license_publisher = malloc(len);
+                strncpy(cartridge->license_publisher, new_licenses[i] + 3, len - 3);
+                break;
+            }
+        } 
+    } else {
+        for(int i = 0; i < 147; i++) {
+            char two_first[2];
+            strncpy(two_first, old_licenses[i], 2);
+            int hex = strtol(two_first, NULL, 16);
+            if(hex == old_lic) {
+                size_t len = strlen(old_licenses[i]);
+                cartridge->license_publisher = malloc(len);
+                strncpy(cartridge->license_publisher, old_licenses[i] + 3, len - 3);
+                break;
+            }
         }
     }
+
+    return 0;
 }
 
-return 0;
-}
-
-int parse_cart_type(uint8_t code) {
+int parse_cart_type(struct parsed_cart *cartridge, uint8_t code) {
     for(int i = 0; i < 28; i++) {
         char two_first[2];
         strncpy(two_first, cartridge_types[i], 2);
         int hex = strtol(two_first, NULL, 16);
         if(hex == code) {
             size_t len = strlen(cartridge_types[i]);
-            char tmp_str[len];
-            strncpy(tmp_str, cartridge_types[i] + 3, len - 3);
-            cartridge.cart_type = tmp_str;
+            cartridge->cart_type = malloc(len);
+            strncpy(cartridge->cart_type, cartridge_types[i] + 3, len - 3);
             break;
         }
     }
     return 0;
 }
 
-int parse_rom_size(int rom_size_code) {
+int parse_rom_size(struct parsed_cart *cartridge, int rom_size_code) {
     long rom_size = 32 * 1024;
     for(int i = 0; i < rom_size_code; i++) {
         rom_size *= 2;
     }
     
-    cartridge.rom_size = rom_size;
+    cartridge->rom_size = rom_size;
 
     return 0;
 } 
 
-int parse_ram_size(int ram_size_code) {
+int parse_ram_size(struct parsed_cart *cartridge, int ram_size_code) {
     long ram_size;
     if(ram_size_code == 1 || ram_size_code == 0) {
         ram_size = 0;
@@ -357,11 +351,11 @@ int parse_ram_size(int ram_size_code) {
         }
     }
 
-    cartridge.ram_size = ram_size;
+    cartridge->ram_size = ram_size;
     return 0;
 }
 
-int parse_cart_header() {
+int parse_cart_header(struct parsed_cart *cartridge ,unsigned char full_cart_header[80]) {
     int i = 0;
     int j = 0;
     uint8_t new_lic_code[2];
@@ -371,22 +365,22 @@ int parse_cart_header() {
     uint8_t ram_size_code;
 
     for(j = 0; j < 4; j++, i++) {
-        cartridge.entry_point[j] = full_cart_header[i];
+        cartridge->entry_point[j] = full_cart_header[i];
     }
 
     for(j = 0; j < 48; j++, i++) {
-        cartridge.nintendo_logo[j] = full_cart_header[i];
+        cartridge->nintendo_logo[j] = full_cart_header[i];
     }
 
     for(j = 0; j < 16; j++, i++) {
-        cartridge.title[j] = full_cart_header[i];
+        cartridge->title[j] = full_cart_header[i];
     }
 
     for(j = 0; j < 2; j++, i++) {
         new_lic_code[j] = full_cart_header[i];
     }
     
-    cartridge.SGB_flag = full_cart_header[i];
+    cartridge->SGB_flag = full_cart_header[i];
     i++;
 
     cart_type_code = full_cart_header[i];
@@ -398,48 +392,76 @@ int parse_cart_header() {
     ram_size_code = full_cart_header[i];
     i++;
     
-    cartridge.dest_code = full_cart_header[i];
+    cartridge->dest_code = full_cart_header[i];
     i++;
 
     old_lic_code = full_cart_header[i];
     i++;
 
-    cartridge.version_of_game = full_cart_header[i];
+    cartridge->version_of_game = full_cart_header[i];
     i++;
 
-    cartridge.header_checksum = full_cart_header[i];
+    cartridge->header_checksum = full_cart_header[i];
     i++;
 
     for(j = 0; j < 2; j++, i++) {
-        cartridge.global_checksum[j] = full_cart_header[i];
+        cartridge->global_checksum[j] = full_cart_header[i];
     }
 
-    parse_license(new_lic_code[0], old_lic_code);
-    parse_cart_type(cart_type_code);
-    parse_rom_size(rom_size_code);
-    parse_ram_size(ram_size_code);
+    parse_license(cartridge, new_lic_code[0], old_lic_code);
+    parse_cart_type(cartridge, cart_type_code);
+    parse_rom_size(cartridge, rom_size_code);
+    parse_ram_size(cartridge, ram_size_code);
 
     return 0;
 }
 
-int load_full_rom() {
+int load_full_rom(struct parsed_cart *cartridge) {
     FILE *fp;
 
-    fp = fopen(cartridge.rom_path, "rb");
+    fp = fopen(cartridge->rom_path, "rb");
     if(fp == NULL) {
         return 1;
     }
 
-    fread(full_rom, 1, cartridge.rom_size, fp);
+    uint8_t *full_rom = malloc(cartridge->rom_size);
+    fread(full_rom, 1, cartridge->rom_size, fp);
+    cartridge->full_rom = full_rom;
 
     return 0;
 }
 
-int get_cart(char* rom_path) {
-    cartridge.rom_path = rom_path;
-    read_cart_header();
-    parse_cart_header();
-    load_full_rom();
+int validate_checksum(struct parsed_cart *cartridge) {
+    char *passed = "FAILED";
+
+    uint8_t checksum = 0;
+    for(uint16_t address = 0x0134; address <= 0x014C; address++) {
+        checksum = checksum - cartridge->full_rom[address] - 1;
+    }
+    
+    if(checksum == cartridge->header_checksum) {
+        passed = "PASSED";
+    }
+    cartridge->header_checksum_check = passed;
+
+    return 0;
+}
+
+int get_cart(struct parsed_cart *cartridge, char* rom_path) {
+    printf("LOADING CARTRIDGE...\n");
+    cartridge->rom_path = rom_path;
+    unsigned char *full_cart_header = read_cart_header(cartridge);
+    parse_cart_header(cartridge, full_cart_header);
+    load_full_rom(cartridge);
+    validate_checksum(cartridge);
+
+    printf("CARTRDIGE LOADED\n");
+    printf("TITLE       : %s\n", cartridge->title);
+    printf("PUBLISHER   : %s\n", cartridge->license_publisher);
+    printf("CARTRIDGE   : %s\n", cartridge->cart_type);
+    printf("ROM SIZE    : %ld\n", cartridge->rom_size);
+    printf("RAM SIZE    : %ld\n", cartridge->ram_size);
+    printf("CHECKSUM    : %s\n", cartridge->header_checksum_check);
 
 
     return 0;
