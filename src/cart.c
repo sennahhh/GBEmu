@@ -8,9 +8,9 @@ struct parsed_cart {
     uint8_t entry_point[4]; 
     uint8_t nintendo_logo[48];  
     char title[16];          
-    char license_publisher[1024];
+    char *license_publisher;
     uint8_t SGB_flag;
-    char cart_type[1024];      
+    char *cart_type;      
     long rom_size;       
     long ram_size;
     uint8_t dest_code; 
