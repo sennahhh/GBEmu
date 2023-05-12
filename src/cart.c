@@ -277,6 +277,7 @@ unsigned char *read_cart_header(struct parsed_cart *cartridge) {
 
     fseek(fp, 256, 1);
     fread(full_cart_header, 1, 80, fp);
+    fclose(fp);
 
     return full_cart_header;
 }
@@ -427,6 +428,7 @@ int load_full_rom(struct parsed_cart *cartridge) {
     uint8_t *full_rom = malloc(cartridge->rom_size);
     fread(full_rom, 1, cartridge->rom_size, fp);
     cartridge->full_rom = full_rom;
+    fclose(fp);
 
     return 0;
 }
